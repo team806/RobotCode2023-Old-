@@ -34,22 +34,24 @@ public class Robot extends TimedRobot {
   private final XboxController controller = new XboxController(0);
 
   // motor names
-  private final WPI_TalonFX motor_FRang = new WPI_TalonFX( );
-  private final WPI_TalonFX motor_FRmag = new WPI_TalonFX( );
+  private final WPI_TalonFX motor_FRang = new WPI_TalonFX(1);
+  private final WPI_TalonFX motor_FRmag = new WPI_TalonFX(2);
 
-  private final WPI_TalonFX motor_FLang = new WPI_TalonFX( );
-  private final WPI_TalonFX motor_FLmag = new WPI_TalonFX( );
+  private final WPI_TalonFX motor_FLang = new WPI_TalonFX(3);
+  private final WPI_TalonFX motor_FLmag = new WPI_TalonFX(4);
 
-  private final WPI_TalonFX motor_RRang = new WPI_TalonFX( );
-  private final WPI_TalonFX motor_RRmag = new WPI_TalonFX( );
+  private final WPI_TalonFX motor_RRang = new WPI_TalonFX(5);
+  private final WPI_TalonFX motor_RRmag = new WPI_TalonFX(6);
 
-  private final WPI_TalonFX motor_RLang = new WPI_TalonFX( );
-  private final WPI_TalonFX motor_RLmag = new WPI_TalonFX( );
+  private final WPI_TalonFX motor_RLang = new WPI_TalonFX(7);
+  private final WPI_TalonFX motor_RLmag = new WPI_TalonFX(8);
 
-  CANCoder FL_coder = new CANCoder();
-  CANCoder FR_coder = new CANCoder();
-  CANCoder RL_coder = new CANCoder();
-  CANCoder RR_coder = new CANCoder();
+  /*
+  CANCoder FL_coder = new CANCoder( );
+  CANCoder FR_coder = new CANCoder( );
+  CANCoder RL_coder = new CANCoder( );
+  CANCoder RR_coder = new CANCoder( );
+  */
 
   private PIDController pidController;
 
@@ -73,7 +75,7 @@ public class Robot extends TimedRobot {
   private double RLY;
   private double RLtangent = 225;
   
-  //resultant angles
+  //resultant vectors
   private double FRAng;
   private double FRMag;
 
@@ -161,10 +163,19 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    drive(controller.getLeftX(), controller.getLeftY(), controller.getRightX());
+    //drive(controller.getLeftX(), controller.getLeftY(), controller.getRightX());
+    motor_FRmag.set(controller.getLeftY());
+    motor_FLmag.set(controller.getLeftY());
+    motor_RRmag.set(controller.getLeftY());
+    motor_RLmag.set(controller.getLeftY());
+
+    motor_FRang.set(controller.getLeftX());
+    motor_FLang.set(controller.getLeftX());
+    motor_RRang.set(controller.getLeftX());
+    motor_RLang.set(controller.getLeftX());
 
   }
-
+/*
   private void drive(double x, double y, double z) {
     //..A   = predetermined tangential angle
     //..Ang = desired wheel ang
@@ -229,7 +240,7 @@ public class Robot extends TimedRobot {
     }
     motor_RLmag.set(RLMag);
   }
-
+*/
 
   /** This function is called once when the robot is disabled. */
   @Override
