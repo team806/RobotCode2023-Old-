@@ -2,7 +2,7 @@
 // Open Source Software; you can modify and/or share it under the terms of
 // the WPILib BSD license file in the root directory of this project.
 
-package frc.robot; // This is a comment! A comment we want to make sure goes to github. :)
+package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.sensors.CANCoder;
@@ -34,17 +34,17 @@ public class Robot extends TimedRobot {
   private final XboxController controller = new XboxController(0);
 
   // motor names
-  private final WPI_TalonFX motor_FRang = new WPI_TalonFX();
-  private final WPI_TalonFX motor_FRmag = new WPI_TalonFX();
+  private final WPI_TalonFX motor_FRang = new WPI_TalonFX( );
+  private final WPI_TalonFX motor_FRmag = new WPI_TalonFX( );
 
-  private final WPI_TalonFX motor_FLang = new WPI_TalonFX();
-  private final WPI_TalonFX motor_FLmag = new WPI_TalonFX();
+  private final WPI_TalonFX motor_FLang = new WPI_TalonFX( );
+  private final WPI_TalonFX motor_FLmag = new WPI_TalonFX( );
 
-  private final WPI_TalonFX motor_RRang = new WPI_TalonFX();
-  private final WPI_TalonFX motor_RRmag = new WPI_TalonFX();
+  private final WPI_TalonFX motor_RRang = new WPI_TalonFX( );
+  private final WPI_TalonFX motor_RRmag = new WPI_TalonFX( );
 
-  private final WPI_TalonFX motor_RLang = new WPI_TalonFX();
-  private final WPI_TalonFX motor_RLmag = new WPI_TalonFX();
+  private final WPI_TalonFX motor_RLang = new WPI_TalonFX( );
+  private final WPI_TalonFX motor_RLmag = new WPI_TalonFX( );
 
   CANCoder FL_coder = new CANCoder();
   CANCoder FR_coder = new CANCoder();
@@ -72,8 +72,8 @@ public class Robot extends TimedRobot {
   private double RLX;
   private double RLY;
   private double RLtangent = 225;
-
-  // resultant angles
+  
+  //resultant angles
   private double FRAng;
   private double FRMag;
 
@@ -166,28 +166,28 @@ public class Robot extends TimedRobot {
   }
 
   private void drive(double x, double y, double z) {
-    // ..A = predetermined tangential angle
-    // ..Ang = desired wheel ang
-    // ..X = controller + z component
-    // ..Y = controller + z component
+    //..A   = predetermined tangential angle
+    //..Ang = desired wheel ang
+    //..X   = controller + z component
+    //..Y   = controller + z component
 
-    // Front Right
+    //Front Right 
     FRX = x + z * Math.cos(FRtangent);
     FRY = y + z * Math.sin(FRtangent);
 
-    // Front left
+    //Front left
     FLX = x + z * Math.cos(FLtangent);
     FLY = y + z * Math.sin(FLtangent);
 
-    // Rear right
+    //Rear right
     RRX = x + z * Math.cos(RRtangent);
     RRY = y + z * Math.sin(RRtangent);
 
-    // Rear left
+    //Rear left
     RLX = x + z * Math.cos(RLtangent);
     RLY = y + z * Math.sin(RLtangent);
 
-    // final polar cords
+    //final polar cords
     FRAng = Math.toDegrees(Math.atan2(FRY, FRX));
     FRMag = Math.sqrt((FRX * FRX) + (FRX * FRY));
     FLAng = Math.toDegrees(Math.atan2(FLY, FLX));
@@ -197,38 +197,39 @@ public class Robot extends TimedRobot {
     RLAng = Math.toDegrees(Math.atan2(RLY, RLX));
     RLMag = Math.sqrt((RLX * RLX) + (RLX * RLY));
 
-    // set front right motors
-    if (FRAng < FR_coder.getPosition()) {
+    //set front right motors
+    if(FRAng<FR_coder.getPosition()){
       motor_FRang.set(1);
-    } else {
+    }else{
       motor_FRang.set(-1);
     }
     motor_FRmag.set(FRMag);
 
-    // set front left motors
-    if (FLAng < FL_coder.getPosition()) {
-      motor_FLang.set(1);
-    } else {
+    //set front left motors
+      if(FLAng<FL_coder.getPosition()){
+        motor_FLang.set(1);
+    }else{
       motor_FLang.set(-1);
     }
     motor_FLmag.set(FLMag);
 
-    // set rear right motors
-    if (RRAng < RR_coder.getPosition()) {
+    //set rear right motors
+    if(RRAng<RR_coder.getPosition()){
       motor_RRang.set(1);
-    } else {
+    }else{
       motor_RRang.set(-1);
     }
     motor_RRmag.set(RRMag);
 
-    // set rear left motors
-    if (RLAng < RL_coder.getPosition()) {
+    //set rear left motors 
+    if(RLAng<RL_coder.getPosition()){
       motor_RLang.set(1);
-    } else {
+    }else{
       motor_RLang.set(-1);
     }
     motor_RLmag.set(RLMag);
   }
+
 
   /** This function is called once when the robot is disabled. */
   @Override
