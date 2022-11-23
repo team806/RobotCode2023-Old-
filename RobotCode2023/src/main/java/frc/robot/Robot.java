@@ -5,14 +5,16 @@
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+import com.ctre.phoenix.sensors.AbsoluteSensorRange;
 import com.ctre.phoenix.sensors.CANCoder;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-//added imports
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -33,25 +35,28 @@ public class Robot extends TimedRobot {
 
   private final XboxController controller = new XboxController(0);
 
+  PIDController pid = new PIDController(0.001, 0.000, 0);
+
+  SlewRateLimiter filter = new SlewRateLimiter(0.8);
+
   // motor names
   private final WPI_TalonFX motor_FRang = new WPI_TalonFX(3);
+
   private final WPI_TalonFX motor_FRmag = new WPI_TalonFX(2);
 
   private final WPI_TalonFX motor_FLang = new WPI_TalonFX(8);
   private final WPI_TalonFX motor_FLmag = new WPI_TalonFX(4);
 
-  private final WPI_TalonFX motor_RRang = new WPI_TalonFX(6);
-  private final WPI_TalonFX motor_RRmag = new WPI_TalonFX(1);
+  private final WPI_TalonFX motor_RRang = new WPI_TalonFX(1);
+  private final WPI_TalonFX motor_RRmag = new WPI_TalonFX(6);
 
-  private final WPI_TalonFX motor_RLang = new WPI_TalonFX(7);
-  private final WPI_TalonFX motor_RLmag = new WPI_TalonFX(5);
+  private final WPI_TalonFX motor_RLang = new WPI_TalonFX(5);
+  private final WPI_TalonFX motor_RLmag = new WPI_TalonFX(7);
 
   CANCoder FR_coder = new CANCoder(9);
   CANCoder FL_coder = new CANCoder(11);
   CANCoder RR_coder = new CANCoder(10);
   CANCoder RL_coder = new CANCoder(12);
-
-  private PIDController pidController;
 
   //
 
@@ -97,6 +102,7 @@ public class Robot extends TimedRobot {
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
+
   }
 
   /**
@@ -136,6 +142,7 @@ public class Robot extends TimedRobot {
     m_autoSelected = m_chooser.getSelected();
     // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
     System.out.println("Auto selected: " + m_autoSelected);
+
   }
 
   /** This function is called periodically during autonomous. */
@@ -155,6 +162,11 @@ public class Robot extends TimedRobot {
   /** This function is called once when teleop is enabled. */
   @Override
   public void teleopInit() {
+    pid.enableContinuousInput(0, 360);
+    pid.setTolerance(10);
+    FR_coder.setPositionToAbsolute();
+    FR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+
   }
 
   /** This function is called periodically during operator control. */
@@ -162,83 +174,75 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
 
     // drive(controller.getLeftX(), controller.getLeftY(), controller.getRightX());
-    motor_FRmag.set(controller.getLeftY());
-    motor_FLmag.set(controller.getLeftY());
-    motor_RRmag.set(controller.getLeftY());
-    motor_RLmag.set(controller.getLeftY());
+    // Coeficent = -.36
 
-    motor_FRang.set(controller.getLeftX());
-    motor_FLang.set(controller.getLeftX());
-    motor_RRang.set(controller.getLeftX());
-    motor_RLang.set(controller.getLeftX());
+    double Y = 0;
+    double X = MathUtil.clamp(pid.calculate(FR_coder.getPosition(), (controller.getLeftX() * 180)), -.1, .1);
+
+    if (pid.atSetpoint()) {
+      motor_FRang.set(0);
+      motor_FRmag.set(Y);
+    } else {
+      motor_FRang.set(X);
+      motor_FRmag.set(Y + (.36 * X));
+    }
+    /*
+     * TO DO
+     * tune pid
+     * lower sensitivity
+     * field orientation (wait on gyro)
+     */
 
   }
-  /*
-   * private void drive(double x, double y, double z) {
-   * //..A = predetermined tangential angle
-   * //..Ang = desired wheel ang
-   * //..X = controller + z component
-   * //..Y = controller + z component
-   * 
-   * //Front Right
-   * FRX = x + z * Math.cos(FRtangent);
-   * FRY = y + z * Math.sin(FRtangent);
-   * 
-   * //Front left
-   * FLX = x + z * Math.cos(FLtangent);
-   * FLY = y + z * Math.sin(FLtangent);
-   * 
-   * //Rear right
-   * RRX = x + z * Math.cos(RRtangent);
-   * RRY = y + z * Math.sin(RRtangent);
-   * 
-   * //Rear left
-   * RLX = x + z * Math.cos(RLtangent);
-   * RLY = y + z * Math.sin(RLtangent);
-   * 
-   * //final polar cords
-   * FRAng = Math.toDegrees(Math.atan2(FRY, FRX));
-   * FRMag = Math.sqrt((FRX * FRX) + (FRX * FRY));
-   * FLAng = Math.toDegrees(Math.atan2(FLY, FLX));
-   * FLMag = Math.sqrt((FLX * FLX) + (FLX * FLY));
-   * RRAng = Math.toDegrees(Math.atan2(RRY, RRX));
-   * RRMag = Math.sqrt((RRX * RRX) + (RRX * RRY));
-   * RLAng = Math.toDegrees(Math.atan2(RLY, RLX));
-   * RLMag = Math.sqrt((RLX * RLX) + (RLX * RLY));
-   * 
-   * //set front right motors
-   * if(FRAng<FR_coder.getPosition()){
-   * motor_FRang.set(1);
-   * }else{
-   * motor_FRang.set(-1);
-   * }
-   * motor_FRmag.set(FRMag);
-   * 
-   * //set front left motors
-   * if(FLAng<FL_coder.getPosition()){
-   * motor_FLang.set(1);
-   * }else{
-   * motor_FLang.set(-1);
-   * }
-   * motor_FLmag.set(FLMag);
-   * 
-   * //set rear right motors
-   * if(RRAng<RR_coder.getPosition()){
-   * motor_RRang.set(1);
-   * }else{
-   * motor_RRang.set(-1);
-   * }
-   * motor_RRmag.set(RRMag);
-   * 
-   * //set rear left motors
-   * if(RLAng<RL_coder.getPosition()){
-   * motor_RLang.set(1);
-   * }else{
-   * motor_RLang.set(-1);
-   * }
-   * motor_RLmag.set(RLMag);
-   * }
-   */
+
+  private void drive(double x, double y, double z) {
+    // ..A = predetermined tangential angle
+    // ..Ang = desired wheel ang
+    // ..X = controller + z component
+    // ..Y = controller + z component
+
+    // Front Right
+    FRX = x + z * Math.cos(FRtangent);
+    FRY = y + z * Math.sin(FRtangent);
+
+    // Front left
+    FLX = x + z * Math.cos(FLtangent);
+    FLY = y + z * Math.sin(FLtangent);
+
+    // Rear right
+    RRX = x + z * Math.cos(RRtangent);
+    RRY = y + z * Math.sin(RRtangent);
+
+    // Rear left
+    RLX = x + z * Math.cos(RLtangent);
+    RLY = y + z * Math.sin(RLtangent);
+
+    // final polar cords
+    FRAng = Math.toDegrees(Math.atan2(FRY, FRX));
+    FRMag = Math.sqrt((FRX * FRX) + (FRX * FRY));
+    FLAng = Math.toDegrees(Math.atan2(FLY, FLX));
+    FLMag = Math.sqrt((FLX * FLX) + (FLX * FLY));
+    RRAng = Math.toDegrees(Math.atan2(RRY, RRX));
+    RRMag = Math.sqrt((RRX * RRX) + (RRX * RRY));
+    RLAng = Math.toDegrees(Math.atan2(RLY, RLX));
+    RLMag = Math.sqrt((RLX * RLX) + (RLX * RLY));
+
+    // set front right motors
+    motor_FRang.set(pid.calculate(FR_coder.getPosition(), FRAng) + (-0.36 * FRMag));
+    motor_FRmag.set(FRMag);
+
+    // set front left motors
+    motor_FLang.set(pid.calculate(FL_coder.getPosition(), FLAng) + (-0.36 * FLMag));
+    motor_FLmag.set(FLMag);
+
+    // set rear right motors
+    motor_RRang.set(pid.calculate(RR_coder.getPosition(), RRAng) + (-0.36 * RRMag));
+    motor_RRmag.set(RRMag);
+
+    // set rear left motors
+    motor_RLang.set(pid.calculate(RL_coder.getPosition(), RLAng) + (-0.36 * RLMag));
+    motor_RLmag.set(RLMag);
+  }
 
   /** This function is called once when the robot is disabled. */
   @Override
