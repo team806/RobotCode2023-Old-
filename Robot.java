@@ -14,7 +14,6 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-//added imports
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -35,7 +34,7 @@ public class Robot extends TimedRobot {
 
   private final XboxController controller = new XboxController(0);
 
-  PIDController pid = new PIDController(.1, 0, 0);
+  PIDController pid = new PIDController(.00001, .000001, 0);
 
   // motor names
   private final WPI_TalonFX motor_FRang = new WPI_TalonFX(3);
@@ -171,11 +170,17 @@ public class Robot extends TimedRobot {
 
     // drive(controller.getLeftX(), controller.getLeftY(), controller.getRightX());
     // Coeficent = -.36
-
+    pid.setTolerance(50);
+    double X;
     double Y = controller.getLeftY();
-    double X = MathUtil.clamp(pid.calculate(FR_coder.getPosition(), controller.getLeftX() * 180), -.2, .2);
+    pid.setSetpoint(controller.getLeftX() * 180);
+    if (pid.onTarget()) {
+      X = 0;
+    } else {
+      X = MathUtil.clamp(pid.calculate(FR_coder.getPosition()), -.05, .05);
+    }
 
-    motor_FRmag.set(Y + (-.36 * X));
+    motor_FRmag.set((-.36 * X));
     motor_FRang.set(X);
 
     // motor_FLmag.set(controller.getLeftY());

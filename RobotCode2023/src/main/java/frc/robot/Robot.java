@@ -10,11 +10,11 @@ import com.ctre.phoenix.sensors.CANCoder;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
-import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.PrintCommand;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -35,9 +35,7 @@ public class Robot extends TimedRobot {
 
   private final XboxController controller = new XboxController(0);
 
-  PIDController pid = new PIDController(0.001, 0.000, 0);
-
-  SlewRateLimiter filter = new SlewRateLimiter(0.8);
+  PIDController pid = new PIDController(0.1, 0, 0);
 
   // motor names
   private final WPI_TalonFX motor_FRang = new WPI_TalonFX(3);
@@ -163,7 +161,6 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopInit() {
     pid.enableContinuousInput(0, 360);
-    pid.setTolerance(10);
     FR_coder.setPositionToAbsolute();
     FR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
 
@@ -176,20 +173,26 @@ public class Robot extends TimedRobot {
     // drive(controller.getLeftX(), controller.getLeftY(), controller.getRightX());
     // Coeficent = -.36
 
-    double Y = 0;
-    double X = MathUtil.clamp(pid.calculate(FR_coder.getPosition(), (controller.getLeftX() * 180)), -.1, .1);
+    // Math.toDegrees(Math.atan2(controller.getLeftY(), controller.getLeftX()))
+    // ^setpoint^
 
-    if (pid.atSetpoint()) {
+    pid.setSetpoint(Math.toDegrees(Math.atan2(-controller.getLeftY(), controller.getLeftX())));
+    double Y = 0;
+    double X = MathUtil.clamp(pid.calculate(FR_coder.getPosition()), -.2, .2);
+
+    // pid.getPositionError() < 0
+    // ^conditional^
+    if (pid.getPositionError() > 0.05) {
       motor_FRang.set(0);
       motor_FRmag.set(Y);
     } else {
       motor_FRang.set(X);
-      motor_FRmag.set(Y + (.36 * X));
+      motor_FRmag.set(Y + (-.36 * X));
     }
+
     /*
      * TO DO
      * tune pid
-     * lower sensitivity
      * field orientation (wait on gyro)
      */
 
