@@ -10,6 +10,7 @@ import com.ctre.phoenix.sensors.CANCoder;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -35,7 +36,7 @@ public class Robot extends TimedRobot {
 
   private final XboxController controller = new XboxController(0);
 
-  PIDController pid = new PIDController(0.1, 0, 0);
+  PIDController pid = new PIDController(0.01, 0, 0);
 
   // motor names
   private final WPI_TalonFX motor_FRang = new WPI_TalonFX(3);
@@ -62,19 +63,19 @@ public class Robot extends TimedRobot {
 
   private double FRX;
   private double FRY;
-  private double FRtangent = 315;
+  private double FRtangent = 175;
 
   private double FLX;
   private double FLY;
-  private double FLtangent = 45;
+  private double FLtangent = 225;
 
   private double RRX;
   private double RRY;
-  private double RRtangent = 135;
+  private double RRtangent = 0;
 
   private double RLX;
   private double RLY;
-  private double RLtangent = 225;
+  private double RLtangent = 315;
 
   // resultant vectors
   private double FRAng;
@@ -160,42 +161,25 @@ public class Robot extends TimedRobot {
   /** This function is called once when teleop is enabled. */
   @Override
   public void teleopInit() {
+    pid.setTolerance(1);
     pid.enableContinuousInput(0, 360);
     FR_coder.setPositionToAbsolute();
     FR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
-
+    FL_coder.setPositionToAbsolute();
+    FL_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    RR_coder.setPositionToAbsolute();
+    RR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    RL_coder.setPositionToAbsolute();
+    RL_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
   }
 
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
 
-    // drive(controller.getLeftX(), controller.getLeftY(), controller.getRightX());
-    // Coeficent = -.36
+    // drive(controller.getRightX(), controller.getRightY(), controller.getLeftX());
 
-    // Math.toDegrees(Math.atan2(controller.getLeftY(), controller.getLeftX()))
-    // ^setpoint^
-
-    pid.setSetpoint(Math.toDegrees(Math.atan2(-controller.getLeftY(), controller.getLeftX())));
-    double Y = 0;
-    double X = MathUtil.clamp(pid.calculate(FR_coder.getPosition()), -.2, .2);
-
-    // pid.getPositionError() < 0
-    // ^conditional^
-    if (pid.getPositionError() > 0.05) {
-      motor_FRang.set(0);
-      motor_FRmag.set(Y);
-    } else {
-      motor_FRang.set(X);
-      motor_FRmag.set(Y + (-.36 * X));
-    }
-
-    /*
-     * TO DO
-     * tune pid
-     * field orientation (wait on gyro)
-     */
-
+    drive(1, 0, 0);
   }
 
   private void drive(double x, double y, double z) {
@@ -220,31 +204,26 @@ public class Robot extends TimedRobot {
     RLX = x + z * Math.cos(RLtangent);
     RLY = y + z * Math.sin(RLtangent);
 
-    // final polar cords
-    FRAng = Math.toDegrees(Math.atan2(FRY, FRX));
-    FRMag = Math.sqrt((FRX * FRX) + (FRX * FRY));
-    FLAng = Math.toDegrees(Math.atan2(FLY, FLX));
-    FLMag = Math.sqrt((FLX * FLX) + (FLX * FLY));
-    RRAng = Math.toDegrees(Math.atan2(RRY, RRX));
-    RRMag = Math.sqrt((RRX * RRX) + (RRX * RRY));
-    RLAng = Math.toDegrees(Math.atan2(RLY, RLX));
-    RLMag = Math.sqrt((RLX * RLX) + (RLX * RLY));
-
     // set front right motors
-    motor_FRang.set(pid.calculate(FR_coder.getPosition(), FRAng) + (-0.36 * FRMag));
-    motor_FRmag.set(FRMag);
+    pid.setSetpoint(Math.toDegrees(Math.atan2(FRY, FRX)) + 185);
+    motor_FRang.set(pid.atSetpoint() ? 0 : pid.calculate(-FR_coder.getAbsolutePosition()));
+    motor_FRmag.set((Math.hypot(FLY, FLX) / 10) + (0.36 * motor_FRang.get()));
 
     // set front left motors
-    motor_FLang.set(pid.calculate(FL_coder.getPosition(), FLAng) + (-0.36 * FLMag));
-    motor_FLmag.set(FLMag);
+    pid.setSetpoint(Math.toDegrees(Math.atan2(FLY, FLX)) + 100);
+    motor_FLang.set(pid.atSetpoint() ? 0 : pid.calculate(-FL_coder.getAbsolutePosition()));
+    motor_FLmag.set((Math.hypot(FLY, FLX) / 10) + (0.36 * motor_FLang.get()));
 
     // set rear right motors
-    motor_RRang.set(pid.calculate(RR_coder.getPosition(), RRAng) + (-0.36 * RRMag));
-    motor_RRmag.set(RRMag);
+    pid.setSetpoint(Math.toDegrees(Math.atan2(RRY, RRX)) + 120);
+    motor_RRang.set(pid.atSetpoint() ? 0 : pid.calculate(-RR_coder.getAbsolutePosition()));
+    motor_RRmag.set((Math.hypot(FLY, FLX) / 10) + (0.36 * motor_RRang.get()));
 
     // set rear left motors
-    motor_RLang.set(pid.calculate(RL_coder.getPosition(), RLAng) + (-0.36 * RLMag));
-    motor_RLmag.set(RLMag);
+    pid.setSetpoint(Math.toDegrees(Math.atan2(RLY, RLX)) + 165);
+    motor_RLang.set(pid.atSetpoint() ? 0 : pid.calculate(-RL_coder.getAbsolutePosition()));
+    motor_RLmag.set((Math.hypot(FLY, FLX) / 10) + (0.36 * motor_RLang.get()));
+
   }
 
   /** This function is called once when the robot is disabled. */
