@@ -56,6 +56,8 @@ public class Robot extends TimedRobot {
   CANCoder RR_coder = new CANCoder(10);
   CANCoder RL_coder = new CANCoder(12);
 
+  SlewRateLimiter angLimiter = new SlewRateLimiter(10000);
+
   //
 
   // motor controll vectors
@@ -192,25 +194,27 @@ public class Robot extends TimedRobot {
     RLX = (x + (z * -0.707)) * 0.225;
     RLY = (y + (z * -0.707)) * 0.225;
 
+    // angLimiter.calculate(input);
+
     // set front right motors
     pid.setSetpoint(Math.toDegrees(Math.atan2(FRY, FRX)) + 192);
-    motor_FRang.set(pid.atSetpoint() ? 0 : pid.calculate(-FR_coder.getAbsolutePosition()));
-    motor_FRmag.set(Math.hypot(FRY, FRX) + (0 * motor_FRang.get()));
+    motor_FRang.set(angLimiter.calculate(pid.atSetpoint() ? 0 : pid.calculate(-FR_coder.getAbsolutePosition())));
+    motor_FRmag.set(Math.hypot(FRY, FRX) + (-0.36 * motor_FRang.get()));
 
     // set front left motors
     pid.setSetpoint(Math.toDegrees(Math.atan2(FLY, FLX)) + 90);// aligned
-    motor_FLang.set(pid.atSetpoint() ? 0 : pid.calculate(-FL_coder.getAbsolutePosition()));
-    motor_FLmag.set(Math.hypot(FLY, FLX) + (0 * motor_FLang.get()));
+    motor_FLang.set(angLimiter.calculate(pid.atSetpoint() ? 0 : pid.calculate(-FL_coder.getAbsolutePosition())));
+    motor_FLmag.set(Math.hypot(FLY, FLX) + (-0.36 * motor_FLang.get()));
 
     // set rear right motors
     pid.setSetpoint(Math.toDegrees(Math.atan2(RRY, RRX)) + 23);
-    motor_RRang.set(pid.atSetpoint() ? 0 : pid.calculate(-RR_coder.getAbsolutePosition()));
-    motor_RRmag.set(Math.hypot(RRY, RRX) + (0 * motor_RRang.get()));
+    motor_RRang.set(angLimiter.calculate(pid.atSetpoint() ? 0 : pid.calculate(-RR_coder.getAbsolutePosition())));
+    motor_RRmag.set(Math.hypot(RRY, RRX) + (-0.36 * motor_RRang.get()));
 
     // set rear left motors
     pid.setSetpoint(Math.toDegrees(Math.atan2(RLY, RLX)) + 55);
-    motor_RLang.set(pid.atSetpoint() ? 0 : pid.calculate(-RL_coder.getAbsolutePosition()));
-    motor_RLmag.set(Math.hypot(RLY, RLX) + (0 * motor_RLang.get()));
+    motor_RLang.set(angLimiter.calculate(pid.atSetpoint() ? 0 : pid.calculate(-RL_coder.getAbsolutePosition())));
+    motor_RLmag.set(Math.hypot(RLY, RLX) + (-0.36 * motor_RLang.get()));
 
   }
 
