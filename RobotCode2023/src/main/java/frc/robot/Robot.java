@@ -40,7 +40,6 @@ public class Robot extends TimedRobot {
 
   // motor names
   private final WPI_TalonFX motor_FRang = new WPI_TalonFX(3);
-
   private final WPI_TalonFX motor_FRmag = new WPI_TalonFX(2);
 
   private final WPI_TalonFX motor_FLang = new WPI_TalonFX(8);
@@ -63,33 +62,19 @@ public class Robot extends TimedRobot {
 
   private double FRX;
   private double FRY;
-  private double FRtangent = 175;
 
   private double FLX;
   private double FLY;
-  private double FLtangent = 225;
 
   private double RRX;
   private double RRY;
-  private double RRtangent = 0;
 
   private double RLX;
   private double RLY;
-  private double RLtangent = 315;
 
-  // resultant vectors
-  private double FRAng;
-  private double FRMag;
-
-  private double FLAng;
-  private double FLMag;
-
-  private double RRAng;
-  private double RRMag;
-
-  private double RLAng;
-  private double RLMag;
-  //
+  private double xMax = 0.40;
+  private double yMax = 0.40;
+  private double zMax = 0.40;
 
   /**
    * This function is run when the robot is first started up and should be used
@@ -177,9 +162,8 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    // drive(controller.getRightX(), controller.getRightY(), controller.getLeftX());
+    drive(controller.getLeftX(), controller.getLeftY(), controller.getRightX());
 
-    drive(1, 0, 0);
   }
 
   private void drive(double x, double y, double z) {
@@ -188,41 +172,45 @@ public class Robot extends TimedRobot {
     // ..X = controller + z component
     // ..Y = controller + z component
 
+    x = x * xMax;
+    y = y * yMax;
+    z = z * zMax;
+
     // Front Right
-    FRX = x + z * Math.cos(FRtangent);
-    FRY = y + z * Math.sin(FRtangent);
+    FRX = (x + (z * 0.707)) * 0.225;
+    FRY = (y + (z * 0.707)) * 0.225;
 
     // Front left
-    FLX = x + z * Math.cos(FLtangent);
-    FLY = y + z * Math.sin(FLtangent);
+    FLX = (x + (z * 0.707)) * 0.225;
+    FLY = (y + (z * -0.707)) * 0.225;
 
     // Rear right
-    RRX = x + z * Math.cos(RRtangent);
-    RRY = y + z * Math.sin(RRtangent);
+    RRX = (x + (z * -0.707)) * 0.225;
+    RRY = (y + (z * 0.707)) * 0.225;
 
     // Rear left
-    RLX = x + z * Math.cos(RLtangent);
-    RLY = y + z * Math.sin(RLtangent);
+    RLX = (x + (z * -0.707)) * 0.225;
+    RLY = (y + (z * -0.707)) * 0.225;
 
     // set front right motors
-    pid.setSetpoint(Math.toDegrees(Math.atan2(FRY, FRX)) + 185);
+    pid.setSetpoint(Math.toDegrees(Math.atan2(FRY, FRX)) + 192);
     motor_FRang.set(pid.atSetpoint() ? 0 : pid.calculate(-FR_coder.getAbsolutePosition()));
-    motor_FRmag.set((Math.hypot(FLY, FLX) / 10) + (0.36 * motor_FRang.get()));
+    motor_FRmag.set(Math.hypot(FRY, FRX) + (0 * motor_FRang.get()));
 
     // set front left motors
-    pid.setSetpoint(Math.toDegrees(Math.atan2(FLY, FLX)) + 100);
+    pid.setSetpoint(Math.toDegrees(Math.atan2(FLY, FLX)) + 90);// aligned
     motor_FLang.set(pid.atSetpoint() ? 0 : pid.calculate(-FL_coder.getAbsolutePosition()));
-    motor_FLmag.set((Math.hypot(FLY, FLX) / 10) + (0.36 * motor_FLang.get()));
+    motor_FLmag.set(Math.hypot(FLY, FLX) + (0 * motor_FLang.get()));
 
     // set rear right motors
-    pid.setSetpoint(Math.toDegrees(Math.atan2(RRY, RRX)) + 120);
+    pid.setSetpoint(Math.toDegrees(Math.atan2(RRY, RRX)) + 23);
     motor_RRang.set(pid.atSetpoint() ? 0 : pid.calculate(-RR_coder.getAbsolutePosition()));
-    motor_RRmag.set((Math.hypot(FLY, FLX) / 10) + (0.36 * motor_RRang.get()));
+    motor_RRmag.set(Math.hypot(RRY, RRX) + (0 * motor_RRang.get()));
 
     // set rear left motors
-    pid.setSetpoint(Math.toDegrees(Math.atan2(RLY, RLX)) + 165);
+    pid.setSetpoint(Math.toDegrees(Math.atan2(RLY, RLX)) + 55);
     motor_RLang.set(pid.atSetpoint() ? 0 : pid.calculate(-RL_coder.getAbsolutePosition()));
-    motor_RLmag.set((Math.hypot(FLY, FLX) / 10) + (0.36 * motor_RLang.get()));
+    motor_RLmag.set(Math.hypot(RLY, RLX) + (0 * motor_RLang.get()));
 
   }
 
