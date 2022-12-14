@@ -72,8 +72,8 @@ public class Robot extends TimedRobot {
   private double RLY;
   private double RLtangent = Math.PI * 0.75;
 
-  private double angSpeedMax = 0.5;
-  private double magSpeedMax = 0.5;
+  private double angSpeedMax = 0.3;
+  private double magSpeedMax = 0.90;
 
   /**
    * This function is run when the robot is first started up and should be used
@@ -152,8 +152,16 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    drive(-controller.getRightY() * 0.2, controller.getRightX() * 0.2, controller.getLeftX() * 0.2);
+    drive(-controller.getLeftY() * 0.325, controller.getLeftX() * 0.325, controller.getRightX() * 0.35);
 
+    /*
+     * todo:
+     * gyro offset and field oriented control
+     * wheel reversal
+     * encoder configuration
+     * schuphealebroad
+     * module class<(useless but cool)
+     */
   }
 
   private void drive(double x, double y, double z) {
@@ -171,10 +179,8 @@ public class Robot extends TimedRobot {
     RLY = y + (z * -0.707106);
 
     motor_FRang
-        .set(pid.calculate(-FR_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FRY, FRX)) + 102)
-            * angSpeedMax);
-    motor_FRmag
-        .set((Math.hypot(FRY, FRX) * magSpeedMax) + (-0.36 * motor_FRang.get()));
+        .set(pid.calculate(-FR_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FRY, FRX)) + 102) * angSpeedMax);
+    motor_FRmag.set((Math.hypot(FRY, FRX) * magSpeedMax) + (-0.36 * motor_FRang.get()));
 
     motor_FLang
         .set(pid.calculate(-FL_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FLY, FLX)) - 0)
