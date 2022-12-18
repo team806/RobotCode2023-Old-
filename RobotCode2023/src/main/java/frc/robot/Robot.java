@@ -5,9 +5,11 @@
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+import com.ctre.phoenix.sensors.AbsoluteSensorRange;
 import com.ctre.phoenix.sensors.CANCoder;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -33,6 +35,8 @@ public class Robot extends TimedRobot {
   private final XboxController controller = new XboxController(0);
 
   PIDController pid = new PIDController(0.02, 0, 0);
+
+  private ADXRS450_Gyro gyro = new ADXRS450_Gyro();
 
   // motor names
   private final WPI_TalonFX motor_FRang = new WPI_TalonFX(3);
@@ -146,6 +150,19 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopInit() {
     pid.enableContinuousInput(0, 360);
+    FR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    FR_coder.configSensorDirection(true);
+    FR_coder.configMagnetOffset(102);
+    FL_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    FL_coder.configSensorDirection(true);
+    FL_coder.configMagnetOffset(0);
+    RR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    RR_coder.configSensorDirection(true);
+    RR_coder.configMagnetOffset(-70);
+    RL_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    RL_coder.configSensorDirection(true);
+    RL_coder.configMagnetOffset(-28);
+    gyro.calibrate();
   }
 
   /** This function is called periodically during operator control. */
@@ -154,17 +171,25 @@ public class Robot extends TimedRobot {
 
     drive(-controller.getLeftY() * 0.325, controller.getLeftX() * 0.325, controller.getRightX() * 0.35);
 
+    // drive(0, 0.1, 0);
+
+    if (controller.getAButtonPressed()) {
+      gyro.reset();
+    }
     /*
      * todo:
-     * gyro offset and field oriented control
      * wheel reversal
-     * encoder configuration
      * schuphealebroad
      * module class<(useless but cool)
      */
   }
 
   private void drive(double x, double y, double z) {
+
+    double controlerAng = Math.atan2(y, x) - Math.toRadians(gyro.getAngle());
+    double controlermag = Math.hypot(x, y);
+    x = Math.cos(controlerAng) * controlermag;
+    y = Math.sin(controlerAng) * controlermag;
 
     FRX = x + (z * -0.707106);
     FRY = y + (z * 0.707106);
@@ -178,28 +203,17 @@ public class Robot extends TimedRobot {
     RLX = x + (z * 0.707106);
     RLY = y + (z * -0.707106);
 
-    motor_FRang
-        .set(pid.calculate(-FR_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FRY, FRX)) + 102) * angSpeedMax);
+    motor_FRang.set(pid.calculate(FR_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FRY, FRX))) * angSpeedMax);
     motor_FRmag.set((Math.hypot(FRY, FRX) * magSpeedMax) + (-0.36 * motor_FRang.get()));
 
-    motor_FLang
-        .set(pid.calculate(-FL_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FLY, FLX)) - 0)
-            * angSpeedMax);
-    motor_FLmag
-        .set((Math.hypot(FLY, FLX) * magSpeedMax) + (-0.36 * motor_FLang.get()));
+    motor_FLang.set(pid.calculate(FL_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FLY, FLX))) * angSpeedMax);
+    motor_FLmag.set((Math.hypot(FLY, FLX) * magSpeedMax) + (-0.36 * motor_FLang.get()));
 
-    motor_RRang
-        .set(pid.calculate(-RR_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(RRY, RRX)) - 70)
-            * angSpeedMax);
-    motor_RRmag
-        .set((Math.hypot(RRY, RRX) * magSpeedMax) + (-0.36 * motor_RRang.get()));
+    motor_RRang.set(pid.calculate(RR_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(RRY, RRX))) * angSpeedMax);
+    motor_RRmag.set((Math.hypot(RRY, RRX) * magSpeedMax) + (-0.36 * motor_RRang.get()));
 
-    motor_RLang
-        .set(pid.calculate(-RL_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(RLY, RLX)) - 28)
-            * angSpeedMax);
-    motor_RLmag
-        .set((Math.hypot(RLY, RLX) * magSpeedMax) + (-0.36 * motor_RLang.get()));
-
+    motor_RLang.set(pid.calculate(RL_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(RLY, RLX))) * angSpeedMax);
+    motor_RLmag.set((Math.hypot(RLY, RLX) * magSpeedMax) + (-0.36 * motor_RLang.get()));
   }
 
   /** This function is called once when the robot is disabled. */
