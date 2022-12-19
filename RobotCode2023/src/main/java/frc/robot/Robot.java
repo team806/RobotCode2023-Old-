@@ -56,26 +56,6 @@ public class Robot extends TimedRobot {
   CANCoder RR_coder = new CANCoder(10);
   CANCoder RL_coder = new CANCoder(12);
 
-  //
-
-  // motor controll vectors
-
-  private double FRX;
-  private double FRY;
-  private double FRtangent = Math.PI * 1.75;
-
-  private double FLX;
-  private double FLY;
-  private double FLtangent = Math.PI * 0.25;
-
-  private double RRX;
-  private double RRY;
-  private double RRtangent = Math.PI * 1.25;
-
-  private double RLX;
-  private double RLY;
-  private double RLtangent = Math.PI * 0.75;
-
   private double angSpeedMax = 0.3;
   private double magSpeedMax = 0.90;
 
@@ -169,19 +149,11 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    drive(-controller.getLeftY() * 0.325, controller.getLeftX() * 0.325, controller.getRightX() * 0.35);
-
-    // drive(0, 0.1, 0);
+    drive(-controller.getLeftY() * 0.6, controller.getLeftX() * 0.6, controller.getRightX());
 
     if (controller.getAButtonPressed()) {
       gyro.reset();
     }
-    /*
-     * todo:
-     * wheel reversal
-     * schuphealebroad
-     * module class<(useless but cool)
-     */
   }
 
   private void drive(double x, double y, double z) {
@@ -191,29 +163,30 @@ public class Robot extends TimedRobot {
     x = Math.cos(controlerAng) * controlermag;
     y = Math.sin(controlerAng) * controlermag;
 
-    FRX = x + (z * -0.707106);
-    FRY = y + (z * 0.707106);
+    moduleDrive(motor_FRang, motor_FRmag, FR_coder.getAbsolutePosition(), x + (z * -0.707106), y + (z * 0.707106));
+    moduleDrive(motor_FLang, motor_FLmag, FL_coder.getAbsolutePosition(), x + (z * 0.707106), y + (z * 0.707106));
+    moduleDrive(motor_RRang, motor_RRmag, RR_coder.getAbsolutePosition(), x + (z * -0.707106), y + (z * -0.707106));
+    moduleDrive(motor_RLang, motor_RLmag, RL_coder.getAbsolutePosition(), x + (z * 0.707106), y + (z * -0.707106));
 
-    FLX = x + (z * 0.707106);
-    FLY = y + (z * 0.707106);
+  }
 
-    RRX = x + (z * -0.707106);
-    RRY = y + (z * -0.707106);
+  void moduleDrive(WPI_TalonFX angMotor, WPI_TalonFX magMotor, double encoderAng, double x, double y) {
+    double targetAng = Math.toDegrees(Math.atan2(y, x));
+    double targetMag = Math.hypot(y, x);// scaled to range [-1,1]
 
-    RLX = x + (z * 0.707106);
-    RLY = y + (z * -0.707106);
+    if (distance(encoderAng, targetAng) > 90) {
+      targetAng += 180;
+      targetMag = -targetMag;
+    }
 
-    motor_FRang.set(pid.calculate(FR_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FRY, FRX))) * angSpeedMax);
-    motor_FRmag.set((Math.hypot(FRY, FRX) * magSpeedMax) + (-0.36 * motor_FRang.get()));
+    angMotor.set(pid.calculate(encoderAng, targetAng) * angSpeedMax);
+    magMotor.set((targetMag * magSpeedMax) + (-0.36 * angMotor.get()));
+  }
 
-    motor_FLang.set(pid.calculate(FL_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(FLY, FLX))) * angSpeedMax);
-    motor_FLmag.set((Math.hypot(FLY, FLX) * magSpeedMax) + (-0.36 * motor_FLang.get()));
-
-    motor_RRang.set(pid.calculate(RR_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(RRY, RRX))) * angSpeedMax);
-    motor_RRmag.set((Math.hypot(RRY, RRX) * magSpeedMax) + (-0.36 * motor_RRang.get()));
-
-    motor_RLang.set(pid.calculate(RL_coder.getAbsolutePosition(), Math.toDegrees(Math.atan2(RLY, RLX))) * angSpeedMax);
-    motor_RLmag.set((Math.hypot(RLY, RLX) * magSpeedMax) + (-0.36 * motor_RLang.get()));
+  public static double distance(double alpha, double beta) {
+    double phi = Math.abs(beta - alpha) % 360; // This is either the distance or 360 - distance
+    double distance = phi > 180 ? 360 - phi : phi;
+    return distance;
   }
 
   /** This function is called once when the robot is disabled. */
