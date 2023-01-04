@@ -8,6 +8,7 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.sensors.AbsoluteSensorRange;
 import com.ctre.phoenix.sensors.CANCoder;
 
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -56,8 +57,9 @@ public class Robot extends TimedRobot {
   CANCoder RR_coder = new CANCoder(10);
   CANCoder RL_coder = new CANCoder(12);
 
+  private double swerveRatio = -0.36;
   private double angSpeedMax = 0.3;
-  private double magSpeedMax = 0.90;
+  private double magSpeedMax = 1 - (angSpeedMax * -swerveRatio);
 
   /**
    * This function is run when the robot is first started up and should be used
@@ -85,6 +87,20 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
+    SmartDashboard.putNumber("FR codeer ang", FR_coder.getAbsolutePosition());
+    SmartDashboard.putNumber("FL codeer ang", FL_coder.getAbsolutePosition());
+    SmartDashboard.putNumber("RR codeer ang", RR_coder.getAbsolutePosition());
+    SmartDashboard.putNumber("RL codeer ang", RL_coder.getAbsolutePosition());
+
+    SmartDashboard.putNumber("FR ang motor", motor_FRang.get());
+    SmartDashboard.putNumber("FL ang motor", motor_FLang.get());
+    SmartDashboard.putNumber("RR ang motor", motor_RRang.get());
+    SmartDashboard.putNumber("RL ang motor", motor_RLang.get());
+
+    SmartDashboard.putNumber("FR mag motor", motor_FRmag.get());
+    SmartDashboard.putNumber("FL mag motor", motor_FLmag.get());
+    SmartDashboard.putNumber("RR mag motor", motor_RRmag.get());
+    SmartDashboard.putNumber("RL mag motor", motor_RLmag.get());
   }
 
   /**
@@ -143,13 +159,16 @@ public class Robot extends TimedRobot {
     RL_coder.configSensorDirection(true);
     RL_coder.configMagnetOffset(-28);
     gyro.calibrate();
+
+    SmartDashboard.putNumber("angSpeedMax", angSpeedMax);
+    SmartDashboard.putNumber("magSpeedMax", magSpeedMax);
   }
 
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
 
-    drive(-controller.getLeftY() * 0.6, controller.getLeftX() * 0.6, controller.getRightX());
+    drive(controller.getLeftX() * 0.6, controller.getLeftY() * 0.6, controller.getRightX());
 
     if (controller.getAButtonPressed()) {
       gyro.reset();
@@ -158,29 +177,36 @@ public class Robot extends TimedRobot {
 
   private void drive(double x, double y, double z) {
 
-    double controlerAng = Math.atan2(y, x) - Math.toRadians(gyro.getAngle());
-    double controlermag = Math.hypot(x, y);
+    double controlerAng = Math.atan2(y, x) - Math.toRadians(gyro.getAngle() - 90);// rotate by gyro for field
+    double controlermag = MathUtil.clamp(Math.hypot(x, y), -1, 1);
     x = Math.cos(controlerAng) * controlermag;
     y = Math.sin(controlerAng) * controlermag;
+
+    SmartDashboard.putNumber("final x", x);
+    SmartDashboard.putNumber("final y", y);
 
     moduleDrive(motor_FRang, motor_FRmag, FR_coder.getAbsolutePosition(), x + (z * -0.707106), y + (z * 0.707106));
     moduleDrive(motor_FLang, motor_FLmag, FL_coder.getAbsolutePosition(), x + (z * 0.707106), y + (z * 0.707106));
     moduleDrive(motor_RRang, motor_RRmag, RR_coder.getAbsolutePosition(), x + (z * -0.707106), y + (z * -0.707106));
     moduleDrive(motor_RLang, motor_RLmag, RL_coder.getAbsolutePosition(), x + (z * 0.707106), y + (z * -0.707106));
-
   }
 
   void moduleDrive(WPI_TalonFX angMotor, WPI_TalonFX magMotor, double encoderAng, double x, double y) {
     double targetAng = Math.toDegrees(Math.atan2(y, x));
-    double targetMag = Math.hypot(y, x);// scaled to range [-1,1]
+    double targetMag = Math.hypot(y, x) / (1 + Math.hypot(0.707106, 0.707106));// scaled to range [-1,1]
+    double setang;
+    double setmag;
 
     if (distance(encoderAng, targetAng) > 90) {
-      targetAng += 180;
-      targetMag = -targetMag;
+      setang = targetAng + 180;
+      setmag = -targetMag;
+    } else {
+      setang = targetAng;
+      setmag = targetMag;
     }
 
-    angMotor.set(pid.calculate(encoderAng, targetAng) * angSpeedMax);
-    magMotor.set((targetMag * magSpeedMax) + (-0.36 * angMotor.get()));
+    angMotor.set(pid.calculate(encoderAng, setang) * angSpeedMax);
+    magMotor.set((setmag * magSpeedMax) + (swerveRatio * angMotor.get()));
   }
 
   public static double distance(double alpha, double beta) {
