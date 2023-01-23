@@ -10,9 +10,11 @@ import com.ctre.phoenix.sensors.CANCoder;
 
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -36,8 +38,9 @@ public class Robot extends TimedRobot {
   private final XboxController controller = new XboxController(0);
 
   PIDController pid = new PIDController(0.02, 0, 0);
+  PIDController ballancePid = new PIDController(0.02, 0, 0);
 
-  private ADXRS450_Gyro gyro = new ADXRS450_Gyro();
+  public static final ADIS16470_IMU IMU = new ADIS16470_IMU();
 
   // motor names
   private final WPI_TalonFX motor_FRang = new WPI_TalonFX(3);
@@ -72,6 +75,24 @@ public class Robot extends TimedRobot {
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
 
+    pid.enableContinuousInput(0, 360);
+    FR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    FR_coder.configSensorDirection(true);
+    FR_coder.configMagnetOffset(102);
+    FL_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    FL_coder.configSensorDirection(true);
+    FL_coder.configMagnetOffset(0);
+    RR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    RR_coder.configSensorDirection(true);
+    RR_coder.configMagnetOffset(-70);
+    RL_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
+    RL_coder.configSensorDirection(true);
+    RL_coder.configMagnetOffset(-28);
+    IMU.calibrate();
+
+    SmartDashboard.putNumber("angSpeedMax", angSpeedMax);
+    SmartDashboard.putNumber("magSpeedMax", magSpeedMax);
+
   }
 
   /**
@@ -87,7 +108,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
-    SmartDashboard.putNumber("FR codeer ang", FR_coder.getAbsolutePosition());
+    SmartDashboard.putNumber("FR ang", FR_coder.getAbsolutePosition());
     SmartDashboard.putNumber("FL codeer ang", FL_coder.getAbsolutePosition());
     SmartDashboard.putNumber("RR codeer ang", RR_coder.getAbsolutePosition());
     SmartDashboard.putNumber("RL codeer ang", RL_coder.getAbsolutePosition());
@@ -145,23 +166,7 @@ public class Robot extends TimedRobot {
   /** This function is called once when teleop is enabled. */
   @Override
   public void teleopInit() {
-    pid.enableContinuousInput(0, 360);
-    FR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
-    FR_coder.configSensorDirection(true);
-    FR_coder.configMagnetOffset(102);
-    FL_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
-    FL_coder.configSensorDirection(true);
-    FL_coder.configMagnetOffset(0);
-    RR_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
-    RR_coder.configSensorDirection(true);
-    RR_coder.configMagnetOffset(-70);
-    RL_coder.configAbsoluteSensorRange(AbsoluteSensorRange.Unsigned_0_to_360);
-    RL_coder.configSensorDirection(true);
-    RL_coder.configMagnetOffset(-28);
-    gyro.calibrate();
 
-    SmartDashboard.putNumber("angSpeedMax", angSpeedMax);
-    SmartDashboard.putNumber("magSpeedMax", magSpeedMax);
   }
 
   /** This function is called periodically during operator control. */
@@ -171,13 +176,13 @@ public class Robot extends TimedRobot {
     drive(controller.getLeftX() * 0.6, controller.getLeftY() * 0.6, controller.getRightX());
 
     if (controller.getAButtonPressed()) {
-      gyro.reset();
+      IMU.reset();
     }
   }
 
   private void drive(double x, double y, double z) {
 
-    double controlerAng = Math.atan2(y, x) - Math.toRadians(gyro.getAngle() - 90);// rotate by gyro for field
+    double controlerAng = Math.atan2(y, x) - Math.toRadians(IMU.getAngle() - 90);// rotate by gyro for field
     double controlermag = MathUtil.clamp(Math.hypot(x, y), -1, 1);
     x = Math.cos(controlerAng) * controlermag;
     y = Math.sin(controlerAng) * controlermag;
@@ -233,5 +238,18 @@ public class Robot extends TimedRobot {
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {
+    // test ballance code
+    boolean onChargeStation = false;
+    IMU.setYawAxis(IMUAxis.kY);
+
+    if (IMU.getAngle() > 10) {
+      onChargeStation = true;
+    }
+    if (onChargeStation) {
+      drive(0, pid.calculate(IMU.getAngle(), 0), 0);
+    } else {
+      drive(0, 0.1, 0);
+    }
+
   }
 }
