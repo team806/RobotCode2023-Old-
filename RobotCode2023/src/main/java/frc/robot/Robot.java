@@ -38,6 +38,8 @@ public class Robot extends TimedRobot {
   private final XboxController controller = new XboxController(0);
 
   PIDController pid = new PIDController(0.02, 0, 0);
+  PIDController ballancePID = new PIDController(0.02, 0, 0);
+
   PIDController ballancePid = new PIDController(0.02, 0, 0);
 
   public static final ADIS16470_IMU IMU = new ADIS16470_IMU();
@@ -63,6 +65,15 @@ public class Robot extends TimedRobot {
   private double swerveRatio = -0.36;
   private double angSpeedMax = 0.3;
   private double magSpeedMax = 1 - (angSpeedMax * -swerveRatio);
+
+  double robotX = 0;
+  double robotY = 0;
+
+  double gyroRoll;
+  double gyroPitch;
+  double gyroYaw;
+
+  boolean onChargeStation;
 
   /**
    * This function is run when the robot is first started up and should be used
@@ -108,7 +119,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
-    SmartDashboard.putNumber("FR ang", FR_coder.getAbsolutePosition());
+    SmartDashboard.putNumber("FR codeer ang", FR_coder.getAbsolutePosition());
     SmartDashboard.putNumber("FL codeer ang", FL_coder.getAbsolutePosition());
     SmartDashboard.putNumber("RR codeer ang", RR_coder.getAbsolutePosition());
     SmartDashboard.putNumber("RL codeer ang", RL_coder.getAbsolutePosition());
@@ -122,6 +133,34 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("FL mag motor", motor_FLmag.get());
     SmartDashboard.putNumber("RR mag motor", motor_RRmag.get());
     SmartDashboard.putNumber("RL mag motor", motor_RLmag.get());
+
+    IMU.setYawAxis(IMUAxis.kX);
+    gyroRoll = IMU.getAngle();
+    IMU.setYawAxis(IMUAxis.kY);
+    gyroPitch = IMU.getAngle();
+    IMU.setYawAxis(IMUAxis.kZ);
+    gyroYaw = IMU.getAngle();
+
+    double velocityX = ((wheelSpeed(motor_FRmag) * Math.cos(gyroYaw + FR_coder.getAbsolutePosition())) +
+        (wheelSpeed(motor_FLmag) * Math.cos(gyroYaw + FL_coder.getAbsolutePosition())) +
+        (wheelSpeed(motor_RRmag) * Math.cos(gyroYaw + RR_coder.getAbsolutePosition())) +
+        (wheelSpeed(motor_RLmag) * Math.cos(gyroYaw + RL_coder.getAbsolutePosition()))) / 4;
+    double velocityY = ((wheelSpeed(motor_FRmag) * Math.sin(gyroYaw + FR_coder.getAbsolutePosition())) +
+        (wheelSpeed(motor_FLmag) * Math.sin(gyroYaw + FL_coder.getAbsolutePosition())) +
+        (wheelSpeed(motor_RRmag) * Math.sin(gyroYaw + RR_coder.getAbsolutePosition())) +
+        (wheelSpeed(motor_RLmag) * Math.sin(gyroYaw + RL_coder.getAbsolutePosition()))) / 4;
+
+    robotX += velocityX;
+    robotY += velocityY;
+    SmartDashboard.putNumber("X", robotX);
+    SmartDashboard.putNumber("Y", robotY);
+
+  }
+
+  // notice, wheel speed is measured in Feet/second because its pronounced soccer
+
+  double wheelSpeed(WPI_TalonFX motor) {
+    return ((1 / 3) * Math.PI) * (((motor.getSelectedSensorPosition() / 2048) * 600) / 6.75);
   }
 
   /**
@@ -233,22 +272,21 @@ public class Robot extends TimedRobot {
   /** This function is called once when test mode is enabled. */
   @Override
   public void testInit() {
+    onChargeStation = false;
   }
 
   /** This function is called periodically during test mode. */
   @Override
   public void testPeriodic() {
     // test ballance code
-    boolean onChargeStation = false;
-    IMU.setYawAxis(IMUAxis.kY);
 
-    if (IMU.getAngle() > 10) {
-      onChargeStation = true;
-    }
     if (onChargeStation) {
-      drive(0, pid.calculate(IMU.getAngle(), 0), 0);
+      drive(0, ballancePID.calculate(gyroPitch, 0), 0);
     } else {
       drive(0, 0.1, 0);
+      if (gyroPitch > 10) {
+        onChargeStation = true;
+      }
     }
 
   }
