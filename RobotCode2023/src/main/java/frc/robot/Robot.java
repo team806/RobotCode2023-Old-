@@ -32,51 +32,58 @@ public class Robot extends TimedRobot {
   private static final String kCustomAuto = "My Auto";
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
-
+  // controller
   private final XboxController controller = new XboxController(0);
-
+  // gyro
   public static final ADIS16470_IMU IMU = new ADIS16470_IMU();
-
-  // motor names
+  // PIDs
+  PIDController pid = new PIDController(0.02, 0, 0);
+  PIDController ballancePID = new PIDController(0.02, 0, 0);
+  PIDController driveXPID = new PIDController(0.02, 0, 0);
+  PIDController driveYPID = new PIDController(0.02, 0, 0);
+  PIDController driveAngPID = new PIDController(0.02, 0, 0);
+  // Talons
   private final WPI_TalonFX motor_FRang = new WPI_TalonFX(3);
   private final WPI_TalonFX motor_FRmag = new WPI_TalonFX(2);
-
   private final WPI_TalonFX motor_FLang = new WPI_TalonFX(8);
   private final WPI_TalonFX motor_FLmag = new WPI_TalonFX(4);
-
   private final WPI_TalonFX motor_RRang = new WPI_TalonFX(1);
   private final WPI_TalonFX motor_RRmag = new WPI_TalonFX(6);
-
   private final WPI_TalonFX motor_RLang = new WPI_TalonFX(5);
   private final WPI_TalonFX motor_RLmag = new WPI_TalonFX(7);
-
+  // CANCoders
   CANCoder FR_coder = new CANCoder(9);
   CANCoder FL_coder = new CANCoder(11);
   CANCoder RR_coder = new CANCoder(10);
   CANCoder RL_coder = new CANCoder(12);
-
-  PIDController pid = new PIDController(0.02, 0, 0);
-  PIDController ballancePID = new PIDController(0.02, 0, 0);
-
-  private double swerveRatio = -0.36;
-  private double angSpeedMax = 0.3;
-  private double magSpeedMax = 1 - (angSpeedMax * -swerveRatio);
-
-  double robotX = 0;
-  double robotY = 0;
-
-  boolean onChargeStation;
-
-  double gyroYaw;
-  double CWgyroYaw;
-
-  double controllerMagMax = 0.8;
-  double controllerMagPow = 3;
-
+  // encoder position values
   double FR_coderPosition;
   double FL_coderPosition;
   double RR_coderPosition;
   double RL_coderPosition;
+  // constants
+  private double swerveRatio = -0.36;
+  // motor speed maximums
+  private double angSpeedMax = 0.3;
+  private double magSpeedMax = 1 - (angSpeedMax * -swerveRatio);
+  // x,y position of the robot in feet and degrees
+  double robotX = 0;
+  double robotY = 0;
+  double gyroYaw;
+  // clockwise gyro yaw
+  double CWgyroYaw;
+  // velocity of robot in feet per 20ms
+  double velocityX;
+  double velocityY;
+  //
+  boolean onChargeStation;
+  // modifiers for controller inputs (not for drive or module drive methods)
+  double controllerMagMax = 0.8;
+  double controllerMagPow = 3;
+  // target 2D pose values for
+  double targetRobotAng;
+  double targetRobotY;
+  double targetRobotX;
 
   /**
    * This function is run when the robot is first started up and should be used
@@ -109,7 +116,6 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("magSpeedMax", magSpeedMax);
 
     SmartDashboard.putNumber("controller Mag Max", controllerMagMax);
-    SmartDashboard.putNumber("controller Mag Power", controllerMagPow);
   }
 
   /**
@@ -221,7 +227,6 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
     controllerMagMax = SmartDashboard.getNumber("controller Mag Max", controllerMagMax);
-    controllerMagPow = SmartDashboard.getNumber("controller Mag Power", controllerMagPow);
 
     drive(controller.getLeftX(), controller.getLeftY(), Math.pow(controller.getRightX(), controllerMagPow));
 
@@ -230,6 +235,14 @@ public class Robot extends TimedRobot {
     }
   }
 
+  /**
+   * @return Drives the robot in specified direction, rotates input according to
+   *         gyroYaw
+   * @param x one to negitive one value for driving left or right respectivly
+   * @param y one to negitive one value for driving back or forward respectivly
+   * @param z one to negitive one value for driving counter clockwise or clockwise
+   *          respectivly
+   */
   private void drive(double x, double y, double z) {
 
     double controlerAng = Math.atan2(y, x) + Math.toRadians(gyroYaw + 90);// rotate by gyro for field
@@ -246,6 +259,17 @@ public class Robot extends TimedRobot {
     moduleDrive(motor_RLang, motor_RLmag, RL_coderPosition, x + (z * 0.707106), y + (z * -0.707106));
   }
 
+  /**
+   * @return Drive a swerve module acording to an x and y value. NOT field
+   *         oriended
+   * @param angMotor   the steering motor of the respective module
+   * @param magMotor   the steering motor of the respective module
+   * @param encoderAng the encoder ang of the respective module
+   * @param x          one to negitive one value for driving left or right
+   *                   respectivly
+   * @param y          one to negitive one value for driving back or forward
+   *                   respectivly
+   */
   void moduleDrive(WPI_TalonFX angMotor, WPI_TalonFX magMotor, double encoderAng, double x, double y) {
     double targetAng = Math.toDegrees(Math.atan2(y, x));
     double targetMag = Math.hypot(y, x) / (1 + Math.hypot(0.707106, 0.707106));// scaled to range [-1,1]
@@ -303,23 +327,30 @@ public class Robot extends TimedRobot {
      * }
      * }
      */
+    /*
+     * targetRobotAng = ;
+     * targetRobotY = ;
+     * targetRobotX = ;
+     * drive(driveXPID.calculate(robotX,targetRobotX),driveYPID.calculate(robotY,
+     * targetRobotY),driveAngPID.calculate(gyroYaw,targetRobotAng));
+     */
 
     drive(controller.getLeftX(), 0.0, 0.0);
 
     if (controller.getAButtonPressed()) {
       IMU.reset();
     }
+
     double FRmoduleSpeed = moduleSpeed(motor_FRmag, motor_FRang);
-    double FRmoduleAng = CWgyroYaw + FR_coderPosition;
-    double velocityX = FRmoduleSpeed * Math.cos(FRmoduleAng);
-    double velocityY = FRmoduleSpeed * Math.sin(FRmoduleAng);
+    double FRmoduleAng = Math.toRadians(-(gyroYaw + FR_coderPosition));
+    velocityX = FRmoduleSpeed * Math.cos(FRmoduleAng);
+    velocityY = FRmoduleSpeed * Math.sin(FRmoduleAng);
 
     robotX += velocityX;
     robotY += velocityY;
-    SmartDashboard.putNumber("X velocity FRmag", FRmoduleSpeed);
 
-    SmartDashboard.putNumber("X velocity", velocityX);
-    SmartDashboard.putNumber("Y velocity", velocityY);
+    SmartDashboard.putNumber("X ft/s", velocityX * 50);
+    SmartDashboard.putNumber("Y ft/s", velocityY * 50);
     SmartDashboard.putNumber("X", robotX);
     SmartDashboard.putNumber("Y", robotY);
     SmartDashboard.putNumber("Yaw", gyroYaw);
@@ -327,14 +358,7 @@ public class Robot extends TimedRobot {
 
   // notice, wheel speed is measured in Feet/20ms because its pronounced soccer
   double moduleSpeed(WPI_TalonFX driveMotor, WPI_TalonFX steerMotor) {
-    return (driveMotor.getSelectedSensorVelocity() * Math.PI / 30720) - (swerveRatio * steerMotor.get());
-    /*
-     * velocity /2048 = r/100ms
-     * r/100ms /5 = r/cycle
-     * circumfernce = PI/3
-     * r/cycle *circumfernce = feet/cycle
-     * (velocity/10240)*(PI/3)
-     * (velocity*PI)/30720
-     */
+    return ((driveMotor.getSelectedSensorVelocity() / 2867.2) + (steerMotor.getSelectedSensorVelocity() / 21948.5714))
+        * ((14 / 25) * Math.PI);
   }
 }
