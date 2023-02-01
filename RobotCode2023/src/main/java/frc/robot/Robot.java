@@ -14,7 +14,6 @@ import edu.wpi.first.wpilibj.ADIS16470_IMU;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.ADIS16470_IMU.IMUAxis;
-import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -56,16 +55,21 @@ public class Robot extends TimedRobot {
   CANCoder FL_coder = new CANCoder(11);
   CANCoder RR_coder = new CANCoder(10);
   CANCoder RL_coder = new CANCoder(12);
+  //modules
+  swerveModule FR_module = new swerveModule(motor_FRmag,motor_FRang,FR_coder);
+  swerveModule FL_module = new swerveModule(motor_FLmag,motor_FLang,FL_coder);
+  swerveModule RR_module = new swerveModule(motor_RRmag,motor_RRang,RR_coder);
+  swerveModule RL_module = new swerveModule(motor_RLmag,motor_RLang,RL_coder);
   // encoder position values
   double FR_coderPosition;
   double FL_coderPosition;
   double RR_coderPosition;
   double RL_coderPosition;
   // constants
-  private double swerveRatio = -0.36;
+  protected double swerveRatio = -0.36;
   // motor speed maximums
-  private double angSpeedMax = 0.3;
-  private double magSpeedMax = 1 - (angSpeedMax * -swerveRatio);
+  protected double angSpeedMax = 0.3;
+  protected double magSpeedMax = 1 - (angSpeedMax * -swerveRatio);
   // x,y position of the robot in feet and degrees
   double robotX = 0;
   double robotY = 0;
@@ -214,19 +218,18 @@ public class Robot extends TimedRobot {
    *          respectivly
    */
   private void drive(double x, double y, double z) {
-
     double controlerAng = Math.atan2(y, x) + Math.toRadians(gyroYaw + 90);// rotate by gyro for field
     double controlermag = Math.pow(MathUtil.clamp(Math.hypot(x, y), -1, 1), controllerMagPow) * controllerMagMax;
     x = Math.cos(controlerAng) * controlermag;
     y = Math.sin(controlerAng) * controlermag;
 
-    SmartDashboard.putNumber("final x", x);
-    SmartDashboard.putNumber("final y", y);
-
     moduleDrive(motor_FRang, motor_FRmag, FR_coderPosition, x + (z * -0.707106), y + (z * 0.707106));
     moduleDrive(motor_FLang, motor_FLmag, FL_coderPosition, x + (z * 0.707106), y + (z * 0.707106));
     moduleDrive(motor_RRang, motor_RRmag, RR_coderPosition, x + (z * -0.707106), y + (z * -0.707106));
     moduleDrive(motor_RLang, motor_RLmag, RL_coderPosition, x + (z * 0.707106), y + (z * -0.707106));
+
+    SmartDashboard.putNumber("final x", x);
+    SmartDashboard.putNumber("final y", y);
   }
 
   /**
@@ -297,19 +300,11 @@ public class Robot extends TimedRobot {
      * }
      * }
      */
-    /*
-     * targetRobotAng = ;
-     * targetRobotY = ;
-     * targetRobotX = ;
-     * drive(driveXPID.calculate(robotX,targetRobotX),driveYPID.calculate(robotY,
-     * targetRobotY),driveAngPID.calculate(gyroYaw,targetRobotAng));
-     */
+
+    //drive(driveXPID.calculate(robotX),driveYPID.calculate(robotY),driveAngPID.calculate(gyroYaw));
 
     drive(0.0, controller.getLeftY(), 0.0);
-
-    if (controller.getAButtonPressed()) {
-      IMU.reset();
-    }
+    if (controller.getAButtonPressed()) {IMU.reset();}
 
     double FRmoduleSpeed = moduleSpeed(motor_FRmag, motor_FRang);
     double FRmoduleAng = Math.toRadians(gyroYaw + -FR_coderPosition);
@@ -325,8 +320,6 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("Y", robotY);
     SmartDashboard.putNumber("Yaw", gyroYaw);
   }
-
-  //
   /**
    * @return wheel speed is measured in Feet/20ms(periodic cycle) because its
    *         pronounced soccer
@@ -343,7 +336,6 @@ public class Robot extends TimedRobot {
         (WheelRadiusFt)// convert radians per cycle to feet per cycle
     );
   }
-
   /**
    * @return Returns motor velocity in radians per 20ms(one periodic cycle)
    */
