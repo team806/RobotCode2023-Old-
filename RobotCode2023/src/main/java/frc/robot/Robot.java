@@ -56,10 +56,10 @@ public class Robot extends TimedRobot {
   CANCoder RR_coder = new CANCoder(10);
   CANCoder RL_coder = new CANCoder(12);
   //modules
-  swerveModule FR_module = new swerveModule(motor_FRmag,motor_FRang,FR_coder);
-  swerveModule FL_module = new swerveModule(motor_FLmag,motor_FLang,FL_coder);
-  swerveModule RR_module = new swerveModule(motor_RRmag,motor_RRang,RR_coder);
-  swerveModule RL_module = new swerveModule(motor_RLmag,motor_RLang,RL_coder);
+  //swerveModule FR_module = new swerveModule(motor_FRmag,motor_FRang,FR_coder);
+  //swerveModule FL_module = new swerveModule(motor_FLmag,motor_FLang,FL_coder);
+  //swerveModule RR_module = new swerveModule(motor_RRmag,motor_RRang,RR_coder);
+  //swerveModule RL_module = new swerveModule(motor_RLmag,motor_RLang,RL_coder);
   // encoder position values
   double FR_coderPosition;
   double FL_coderPosition;
@@ -306,11 +306,10 @@ public class Robot extends TimedRobot {
     drive(0.0, controller.getLeftY(), 0.0);
     if (controller.getAButtonPressed()) {IMU.reset();}
 
-    double FRmoduleSpeed = moduleSpeed(motor_FRmag, motor_FRang);
+    double FRmoduleSpeed = moduleSpeed(motor_FLmag, motor_FLang);
     double FRmoduleAng = Math.toRadians(gyroYaw + -FR_coderPosition);
     velocityX = FRmoduleSpeed * Math.cos(FRmoduleAng);
     velocityY = FRmoduleSpeed * Math.sin(FRmoduleAng);
-
     robotX += velocityX;
     robotY += velocityY;
 
@@ -319,6 +318,7 @@ public class Robot extends TimedRobot {
     SmartDashboard.putNumber("X", robotX);
     SmartDashboard.putNumber("Y", robotY);
     SmartDashboard.putNumber("Yaw", gyroYaw);
+    SmartDashboard.putNumber("fr drive motor speed", motor_FLmag.getSelectedSensorVelocity());
   }
   /**
    * @return wheel speed is measured in Feet/20ms(periodic cycle) because its

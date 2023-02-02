@@ -1,3 +1,4 @@
+/*
 package frc.robot;
 
 public class vector {
@@ -11,7 +12,7 @@ public class vector {
      * @param cordanateType vector or cartesian
      * @param A for vector- ang. for cartesian- X
      * @param B for vector- mag. for cartesian- Y
-     */
+     
     public vector(String cordanateType, double A, double B) {
       switch (cordanateType) {
           case "vector":  
@@ -45,3 +46,4 @@ public class vector {
         return vectorMag;
     }
 }
+*/

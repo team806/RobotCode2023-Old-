@@ -1,3 +1,4 @@
+/*
 package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
@@ -12,7 +13,7 @@ public class swerveModule extends Robot {
      * @param drive
      * @param steer
      * @param encoder
-     */
+     
     public swerveModule(WPI_TalonFX drive,WPI_TalonFX steer,CANCoder encoder){
       driveMotor = drive;
       steerMotor = steer;
@@ -20,7 +21,7 @@ public class swerveModule extends Robot {
     }
     /**
      * @param velocity desired velocity, coordanates range [-1.0.707106,1,0.707106]
-     */
+     
     void moduleSetVelocity(vector velocity){
       double x = velocity.getX();
       double y = velocity.getY();
@@ -43,7 +44,7 @@ public class swerveModule extends Robot {
     }
     /**
      * 
-     */
+     
     vector moduleGetVelocity(){
       double FRmoduleSpeed = moduleSpeed(driveMotor, steerMotor);
       double FRmoduleAng = Math.toRadians(gyroYaw + -FR_coderPosition);
@@ -57,7 +58,7 @@ public class swerveModule extends Robot {
    *         pronounced soccer
    * @param driveMotor Driving motor of the swerve module
    * @param steerMotor Steering motor of the swerve module
-   */
+   
     double moduleGetSpeed() {
     return (//
       (//
@@ -69,3 +70,4 @@ public class swerveModule extends Robot {
     );
   }
 }
+*/
