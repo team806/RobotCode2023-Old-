@@ -88,13 +88,6 @@ public class Robot extends TimedRobot {
   double targetRobotAng;
   double targetRobotY;
   double targetRobotX;
-  // constants
-  double drive1stStageRatio = 50 / 14;// 14:50
-  double drive2ndStageRatio = 17 / 27;// 27:17
-  double drive3rdStageRatio = 45 / 15;// 15:45
-  double steeringGearRatio = 1 / (150 / 7);// 150/7:1
-  double motorUnitsToRadsSeconds = 2040 * 5 * (2 * Math.PI);
-  double WheelRadiusFt = 1 / 3;
 
   /**
    * This function is run when the robot is first started up and should be used
@@ -145,11 +138,48 @@ public class Robot extends TimedRobot {
     // CCW = positive, centered to NORTH
     gyroYaw = IMU.getAngle();
     // CW = positive, centered to EAST
+    CWgyroYaw = -(gyroYaw + 90);
+    // CW = positive, centered to EAST
     FR_coderPosition = FR_coder.getAbsolutePosition();
     FL_coderPosition = FL_coder.getAbsolutePosition();
     RR_coderPosition = RR_coder.getAbsolutePosition();
     RL_coderPosition = RL_coder.getAbsolutePosition();
-
+    /*
+     * double velocityX = ((wheelSpeed(motor_FRmag) * Math.cos(CWgyroYaw +
+     * FR_coderPosition)) +
+     * (wheelSpeed(motor_FLmag) * Math.cos(CWgyroYaw + FL_coderPosition)) +
+     * (wheelSpeed(motor_RRmag) * Math.cos(CWgyroYaw + RR_coderPosition)) +
+     * (wheelSpeed(motor_RLmag) * Math.cos(CWgyroYaw + RL_coderPosition))) / 4;
+     * double velocityY = ((wheelSpeed(motor_FRmag) * Math.sin(CWgyroYaw +
+     * FR_coderPosition)) +
+     * (wheelSpeed(motor_FLmag) * Math.sin(CWgyroYaw + FL_coderPosition)) +
+     * (wheelSpeed(motor_RRmag) * Math.sin(CWgyroYaw + RR_coderPosition)) +
+     * (wheelSpeed(motor_RLmag) * Math.sin(CWgyroYaw + RL_coderPosition))) / 4;
+     * 
+     * robotX += velocityX;
+     * robotY += velocityY;
+     * 
+     * SmartDashboard.putNumber("X velocity", velocityX);
+     * SmartDashboard.putNumber("Y velocity", velocityY);
+     * SmartDashboard.putNumber("X", robotX);
+     * SmartDashboard.putNumber("Y", robotY);
+     * SmartDashboard.putNumber("Yaw", gyroYaw);
+     */
+    /*
+     * SmartDashboard.putNumber("FR codeer ang", FR_coderPosition);
+     * SmartDashboard.putNumber("FL codeer ang", FL_coderPosition);
+     * SmartDashboard.putNumber("RR codeer ang", RR_coderPosition);
+     * SmartDashboard.putNumber("RL codeer ang", RL_coderPosition);
+     * 
+     * SmartDashboard.putNumber("FR ang motor", motor_FRang.get());
+     * SmartDashboard.putNumber("FL ang motor", motor_FLang.get());
+     * SmartDashboard.putNumber("RR ang motor", motor_RRang.get());
+     * SmartDashboard.putNumber("RL ang motor", motor_RLang.get());
+     * SmartDashboard.putNumber("FR mag motor", motor_FRmag.get());
+     * SmartDashboard.putNumber("FL mag motor", motor_FLmag.get());
+     * SmartDashboard.putNumber("RR mag motor", motor_RRmag.get());
+     * SmartDashboard.putNumber("RL mag motor", motor_RLmag.get());
+     */
   }
 
   /**
@@ -303,23 +333,35 @@ public class Robot extends TimedRobot {
 
     //drive(driveXPID.calculate(robotX),driveYPID.calculate(robotY),driveAngPID.calculate(gyroYaw));
 
+<<<<<<< HEAD
     drive(0.0, controller.getLeftY(), 0.0);
     if (controller.getAButtonPressed()) {IMU.reset();}
 
     double FRmoduleSpeed = moduleSpeed(motor_FLmag, motor_FLang);
     double FRmoduleAng = Math.toRadians(gyroYaw + -FR_coderPosition);
+=======
+    drive(controller.getLeftX(), 0.0, 0.0);
+
+    if (controller.getAButtonPressed()) {
+      IMU.reset();
+    }
+
+    double FRmoduleSpeed = moduleSpeed(motor_FRmag, motor_FRang);
+    double FRmoduleAng = Math.toRadians(-(gyroYaw + FR_coderPosition));
+>>>>>>> parent of da7acc3 (Update Robot.java)
     velocityX = FRmoduleSpeed * Math.cos(FRmoduleAng);
     velocityY = FRmoduleSpeed * Math.sin(FRmoduleAng);
     robotX += velocityX;
     robotY += velocityY;
 
-    SmartDashboard.putNumber("X ft s", velocityX * 50);
-    SmartDashboard.putNumber("Y ft s", velocityY * 50);
+    SmartDashboard.putNumber("X ft/s", velocityX * 50);
+    SmartDashboard.putNumber("Y ft/s", velocityY * 50);
     SmartDashboard.putNumber("X", robotX);
     SmartDashboard.putNumber("Y", robotY);
     SmartDashboard.putNumber("Yaw", gyroYaw);
     SmartDashboard.putNumber("fr drive motor speed", motor_FLmag.getSelectedSensorVelocity());
   }
+<<<<<<< HEAD
   /**
    * @return wheel speed is measured in Feet/20ms(periodic cycle) because its
    *         pronounced soccer
@@ -341,5 +383,12 @@ public class Robot extends TimedRobot {
    */
   double getMotorVelocity(WPI_TalonFX motor) {
     return motor.getSelectedSensorVelocity() * motorUnitsToRadsSeconds;
+=======
+
+  // notice, wheel speed is measured in Feet/20ms because its pronounced soccer
+  double moduleSpeed(WPI_TalonFX driveMotor, WPI_TalonFX steerMotor) {
+    return ((driveMotor.getSelectedSensorVelocity() / 2867.2) + (steerMotor.getSelectedSensorVelocity() / 21948.5714))
+        * ((14 / 25) * Math.PI);
+>>>>>>> parent of da7acc3 (Update Robot.java)
   }
 }
